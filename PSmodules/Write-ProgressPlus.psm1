@@ -305,9 +305,13 @@ function Test-Wripro
     {
         for ($j = 0; $j -lt 10; $j++)
         {
-            [System.Drawing.Point]::new($i, $j)
+            [pscustomobject]@{
+                X = $i
+                Y = $j
+            }
         }
     }
+
     $a = 0;
     $points | Write-ProgressPlus -id 1 -TotalCount 100 -DisplayObject -Activity 'kek' -Debug |
         ForEach-Object { $points |
@@ -356,4 +360,4 @@ function Test-Wripro
 New-Alias -Name WriPro Write-ProgressPlus
 New-Alias -Name Progisław Write-ProgressPlus
 New-Alias -Name ResPro Reset-Progress
-Export-ModuleMember -Function Write-ProgressPlus, Reset-Progress -Alias *
+Export-ModuleMember -Function Write-ProgressPlus, Test-Wripro, Reset-Progress -Alias *

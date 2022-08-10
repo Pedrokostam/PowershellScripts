@@ -374,7 +374,6 @@ function Limit-Object
     }
 }
 
-
 function Group-ObjectFaster
 {
     [CmdletBinding()]
@@ -442,202 +441,6 @@ function Group-ObjectFaster
             Write-Progress -Id 1 -Activity 'Grouping objects...' -Completed
         }
         Write-Output $hashy
-    }
-}
-$WPPPeriod = 2000
-function Write-ProgressPipeline
-{
-    <#
-    .SYNOPSIS
-    Informs about the progress of the pipeline at specified intervals.
-    Meant to be used as part of a pipeline.
-    .DESCRIPTION
-    This command has to be used after a pipeline source.
-    If the command is in the middle of the line, it automatically passes through all input objects.
-    If it is at the end of a pipeline, it does not pass through any objects, unless used with PassThru switch
-    .PARAMETER IncludeObjectString
-    If the switch is present, the default string representation will be append to Status.
-    It is equivalent to setting ItemFormat to {$args[0]}.
-    .PARAMETER ItemFormat
-    The ScriptBlock should contain a script outputting a string related to the object.
-    The string will be appended to Status.
-    If the ScriptBlock is provided, the IncludeObjectString switch is not necessary.
-    .PARAMETER Activity
-    Specifies the first line of text in the heading above the status bar.
-    This text describes the activity whose progress is being reported.
-    .PARAMETER Id
-    Specifies an ID that distinguishes each progress bar from the others
-     Use this parameter when you are creating more than one progress bar in a single command.
-     If the progress bars do not have different IDs, they are superimposed instead of being displayed in a series.
-     Negative values are not allowed.
-    .PARAMETER ParentId
-    Specifies the parent activity of the current activity.
-    Use the value -1 if the current activity has no parent activity.
-    .PARAMETER PassThru
-    If set, the command will pass through input objects to the pipeline.
-    Only effective if the command is at the end of the pipeline - if in the middle the object will always be passed through
-    .PARAMETER TotalCount
-    If set the command will be able to show completion of the process, as well as calculate estimated time remaining
-    .PARAMETER UpdatePeriod
-    Limits how often the progress bar can be updated, which may increase performance.
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline)]
-        $InputObject,
-        [Parameter()]
-        [ValidateRange(1, [int]::MaxValue)]
-        [int]
-        $TotalCount,
-        [Parameter()]
-        [ValidateRange(0, [int]::MaxValue)]
-        [int]
-        $UpdatePeriod = 100,
-        [Parameter()]
-        [ValidateRange(0, [int]::MaxValue)]
-        [int]
-        $Id = 1,
-        [Parameter()]
-        [int]
-        $ParentId = -1,
-        [Parameter()]
-        [string]
-        $Activity = 'Processing',
-        [Parameter()]
-        [switch]
-        $IncludeObjectString,
-        [Parameter()]
-        [scriptblock]
-        $ItemFormat,
-        [Parameter()]
-        [switch]
-        $PassThru
-    )
-    begin
-    {
-        $UpdatePeriod = $UpdatePeriod | Limit-Object 0 $WPPPeriod
-        $count = 0
-        $timeIndex = 0
-        $sineAngle = [Math]::PI / -2
-        $emit = $PSCmdlet.MyInvocation.PipelinePosition -ne $PSCmdlet.MyInvocation.PipelineLength -or $PassThru.IsPresent
-        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-        $pastTimes = @(0, 0, 0, 0, 0, 0, 0, 0, 0)
-        $IsDefined = $PSBoundParameters.ContainsKey('TotalCount')
-        $formatItem = $PSBoundParameters.ContainsKey('ItemFormat') -or $IncludeObjectString.IsPresent
-        if (-not $PSBoundParameters.ContainsKey('ItemFormat') -and $IncludeObjectString.IsPresent)
-        {
-            $ItemFormat = { $args[0] }
-        }
-        $params = @{
-            Activity = $Activity
-            Id       = $Id
-            ParentId = $ParentId
-        }
-        $dynamicParams = $params.Clone()
-        Write-Progress @params -PercentComplete 0
-        $IncorrectCount = $false
-        if (-not $IsDefined)
-        {
-            $TotalCount = [int]::MaxValue
-        }
-    }
-    process
-    {
-        $elapsed = $stopwatch.Elapsed.TotalMilliseconds
-        if ($UpdatePeriod -gt 0 -and $elapsed -gt $UpdatePeriod)
-        {
-            $formatAddendum = ''
-            if ($formatItem)
-            {
-                try
-                {
-
-                    $formatAddendum = " - $(Invoke-Command $ItemFormat -ArgumentList $InputObject -ErrorAction Stop)"
-                }
-                catch
-                {
-                    $formatAddendum = ' - [Invalid ScriptBlock]'
-                }
-            }
-            if ($IsDefined -and $count -lt $TotalCount)
-            {
-                $pastTimes[$timeIndex % 9] = $elapsed
-                $timeIndex++
-                $averageSpeed = ($pastTimes | Measure-Object -Average).Average
-                $eta = ($TotalCount - $count) * $averageSpeed / 1000
-                $percent = $count * 100.0 / $TotalCount
-                $dynamicParams['PercentComplete'] = $percent
-                $dynamicParams['Status'] = "$count / $TotalCount - $($percent.ToString('#'))%$formatAddendum"
-                $dynamicParams['SecondsRemaining'] = $eta
-                Write-Progress @dynamicParams
-            }
-            else
-            {
-                $sineAngle += $elapsed / 100 * [math]::pi / 20
-                $sine = ([math]::sin($sineAngle) + 1) * 45 + 5
-                $sine = $sine | Limit-Object 5 95
-                $dynamicParams['PercentComplete'] = $sine
-                $dynamicParams['Status'] = "Processed: $count$formatAddendum"
-                $dynamicParams.Remove('SecondsRemaining')
-                if ($IncorrectCount) { $dynamicParams['Status'] += ' - Incorrect total count...' }
-                Write-Progress @dynamicParams
-            }
-            $stopwatch.Restart()
-        }
-        if ($emit)
-        {
-            $InputObject
-        }
-        $count++
-    }
-    end
-    {
-        Write-Progress @params
-    }
-}
-
-function Write-ProgressThrottled
-{
-    <#
-    .SYNOPSIS
-    dunno
-    #>
-    [CmdletBinding()]
-    param (
-        # Current iteration of progress
-        [Parameter(Mandatory)]
-        [float]
-        $Current,
-        # Total expected iterations
-        [Parameter(Mandatory)]
-        [ValidateRange(1, [int]::MaxValue)]
-        [float]
-        $Total,
-        # Activity name to be displayed
-        [Parameter(Mandatory)]
-        [string]
-        $Activity,
-        [Parameter()]
-        [int]
-        $Id = 1,
-        [Parameter()]
-        [int]
-        $UpdateThreshold = 100
-    )
-    $modulo = $Current % $UpdateThreshold
-    if ($modulo -eq 0)
-    {
-        $perc = ($Current * 100.0 / $Total)
-        if ($perc -gt 100 -or $perc -lt 0) { $perc = -1 }
-        $status = if ($perc -ne -1) { "$Current / $Total ( $($perc.ToString('#'))% )" } else { "$Current / $Total (Incorrect TotalCount)" }
-        if ($perc -ge 0 -and $perc -le 100)
-        {
-            Write-Progress -Activity $Activity -Id $Id -PercentComplete $perc -Status $status
-        }
-        else
-        {
-            Write-Progress -Activity $Activity -Id $Id -Status $status
-        }
     }
 }
 $defaultTimeUnits = @{
@@ -751,7 +554,7 @@ function Get-Info
         $_.Name.trim()
         $_.MaxClockSpeed
         $_.SocketDesignation }
-    [ordered]@{
+    [pscustomobject][ordered]@{
         'IPv4 address'   = if ($v4.count -eq 1) { $v4[0] } else { $v4 }
         'IPv6 address'   = if ($v6.count -eq 1) { $v6[0] } else { $v6 }
         'OS'             = '{0} ({1})' -f $cinfo.OsName, $cinfo.OsArchitecture
@@ -768,6 +571,6 @@ function Get-Info
         'Current Domain' = $env:USERDOMAIN
         'Computer Name'  = $cinfo.CsName
         'Boot time'      = $cinfo.OsLastBootUpTime
-        'Uptime'         = Format-TimeSpan ((Get-Date) - $cinfo.OsLastBootUpTime) -Units @{Days = ''; Minutes = 'minutos';  Milliseconds = 'mil' }
+        'Uptime'         = Format-TimeSpan ((Get-Date) - $cinfo.OsLastBootUpTime)
     }
 }
