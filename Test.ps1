@@ -1,3 +1,2 @@
-ipmo .\PSmodules\Write-ProgressPlus.psm1
-
-Test-Wripro
+ipmo .\PedroElevation.psm1
+Start-ScriptAsAdmin -NoExit

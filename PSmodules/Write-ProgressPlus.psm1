@@ -30,18 +30,18 @@ function Write-ProgressPlus
             The current iteration number has to be spcified in each call.
             Needs to be reset after completion.
     .PARAMETER InputObject
-    Object usedf in the last iteration of the process. If used not in pipeline it may be not provided.
+    Object used in the last iteration of the process. If used not in pipeline it may be not provided.
     .PARAMETER CurrentIteration
     Used to override the automatically calculated iteration.
-    .PARAMETER DisplayObject
-    If the switch is present, the default string representation will be appended to Status (if InputObject is specified).
-    It is equivalent to setting ItemFormat to {$args[0]}.
+    .PARAMETER HideObject
+    If the switch is present, the input object will not be displayed in the bar.
+    It is equivalent to setting ItemFormat to null.
     .PARAMETER ItemFormat
     The ScriptBlock should contain a script outputting a string related to the object.
     The string will be appended to Status (if InputObject is specified).
     The scriptblock should expect one input parameter (which will be the InputObject).
     Examples of scripts: {$args[0]}, {param($a) $a}
-    If the ScriptBlock is provided, the IncludeObjectString switch is not necessary.
+    By default it uses base string representation
     .PARAMETER Activity
     Specifies the first line of text in the heading above the status bar.
     This text describes the activity whose progress is being reported.
@@ -66,7 +66,7 @@ function Write-ProgressPlus
 
     Will display a progress bar labelled Activity and counting iterations
     .EXAMPLE
-    1..100 | Write-ProgressPlus -Activity 'Working' -TotalCount 100 -DisplayObject| %{sleep -milliseconds 100}
+    1..100 | Write-ProgressPlus -Activity 'Working' -TotalCount 100 -HideObject| %{sleep -milliseconds 100}
 
     Will display a progress bar labelled Working and counting iterations. Will display percentage of completion, current object, and calculate remaining time. Object are piped along
     .EXAMPLE
@@ -84,6 +84,7 @@ function Write-ProgressPlus
     param (
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, ParameterSetName = 'Pipe')]
         [Parameter(ParameterSetName = 'Manual')]
+        [Alias('Item')]
         [object]
         $InputObject,
         [Parameter(Mandatory, ParameterSetName = 'Manual')]
@@ -94,9 +95,9 @@ function Write-ProgressPlus
         [scriptblock]
         $ItemFormat,
         [Parameter()]
-        [Alias('ShowObject', "Show'")]
+        [Alias('SkipObject', "NoShow'")]
         [switch]
-        $DisplayObject,
+        $HideObject,
         [Parameter(ParameterSetName = 'Pipe')]
         [switch]
         $PassThru,
@@ -134,7 +135,7 @@ function Write-ProgressPlus
                 ParentID         = $ParentId
                 TotalCount       = if ($PSBoundParameters.ContainsKey('TotalCount')) { $TotalCount } else { -1 }
                 CurrentIteration = 0
-                ItemFormat       = if ($ItemFormat) { $ItemFormat } elseif ($DisplayObject.IsPresent) { $DefaultFormat }else { $null }
+                ItemFormat       = if ($HideObject.IsPresent) { $null } elseif ($ItemFormat) { $ItemFormat } else { $DefaultFormat }
                 Activity         = $Activity
                 NoEta            = $NoEta.IsPresent
                 AutoIncrement    = $AutoIncrement.IsPresent
@@ -198,7 +199,7 @@ function Write-ProgressInternal
         $pOutput.PercentComplete = $pState.CurrentIteration * 100.0 / $pState.TotalCount
         if ($pOutput.PercentComplete -gt 100)
         {
-            $pOutput.Status += ' / [Incorrect total count]'
+            $pOutput.Status += " / [total count of $($pState.Totalcount) exceeded]"
             $pOutput.PercentComplete = 100
         }
         else
@@ -252,18 +253,18 @@ function Reset-Progress
     if ($Id -lt 0)
     {
         $WppPersistent.Clear()
-        Write-Debug 'Cleared all progress states'
+        Write-Debug "Cleared all progress states ($($WppPersistent.Count))"
     }
     else
     {
         if ($WppPersistent.ContainsKey($Id))
         {
             $WppPersistent.Remove($Id)
-            Write-Debug "Cleared status of progress $Id"
+            Write-Debug "Cleared status of progress $Id "
         }
         else
         {
-            Write-Debug "No status with ID $Id to clear"
+            Write-Debug "No status with ID $Id to cl ear"
         }
     }
 }
