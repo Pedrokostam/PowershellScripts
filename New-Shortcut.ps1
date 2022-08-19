@@ -125,7 +125,7 @@ function New-ShortcutImpl
         }
         $objShortCut.Save()
         Write-Verbose "Created shortcut in $ShortcutPath, targeting $TargetDestination"
-        $ShortcutPath
+        Get-ChildItem $ShortcutPath
     }
     else
     {
@@ -321,5 +321,3 @@ function New-StartMenuShortcut
         }
     }
 }
-
-Export-ModuleMember -Function New-Shortcut, New-StartMenuShortcut

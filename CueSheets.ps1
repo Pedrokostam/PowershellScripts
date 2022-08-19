@@ -1,4 +1,3 @@
-#Requires -Modules PedroUtilities, Write-ProgressPlus, PedroElevation
 function Get-CueAudioPath
 {
     [CmdletBinding()]
@@ -24,7 +23,7 @@ function Compress-CUEImage
 {
     [CmdletBinding()]
     param (
-        [Parameter(ValueFromPipeline)]
+        [Parameter()]
         [string]
         $WorkingDirectory = $null
     )
@@ -39,14 +38,20 @@ function Compress-CUEImage
     catch
     {
         Write-Host 'FLAC encoder not installed. Installing...'
-        if (Test-Admin)
+        while (Test-Admin)
         {
             choco install flac
         }
         else
         {
-            Start-CommandAsAdmin -Command 'choco install flac'
+            Start-CommandAsAdmin -Command 'choco install flac' -wait
         }
+    }
+    try{
+        flac | Out-Null
+    }
+    catch{
+        throw 'FLAC is not installed. Aborting...'
     }
     Write-Host "Looking for CUE sheets in $WorkingDirectory..."
     $shell = New-Object -ComObject 'Shell.Application'

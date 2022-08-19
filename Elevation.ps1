@@ -22,7 +22,13 @@ function Start-CommandAsAdmin
         $NoExit,
         [Parameter()]
         [string]
-        $WorkingDirectory='.'
+        $WorkingDirectory='.',
+        [Parameter()]
+        [switch]
+        $Wait,
+        [Parameter()]
+        [switch]
+        $PassThru
     )
     if (Test-Admin)
     {
@@ -37,7 +43,7 @@ function Start-CommandAsAdmin
         $com += ' -ExecutionPolicy bypass -command '
         $com += $Command
         $psexe = if ($PSVersionTable.PSEdition -ieq 'Core') { 'pwsh.exe' }else { 'powershell.exe' }
-        Start-Process $psexe -ArgumentList $com -Verb runAs
+        Start-Process $psexe -ArgumentList $com -Verb runAs -Wait:$Wait.IsPresent -PassThru:$PassThru.IsPresent
     }
 }
 function Start-ScriptAsAdmin
@@ -55,7 +61,13 @@ function Start-ScriptAsAdmin
         $NoExit,
         [Parameter()]
         [string]
-        $WorkingDirectory=''
+        $WorkingDirectory='',
+        [Parameter()]
+        [switch]
+        $Wait,
+        [Parameter()]
+        [switch]
+        $PassThru
     )
     if($null -eq $ScriptPath -or $ScriptPath -eq ''){
         $ScriptPath = $PSCommandPath
@@ -73,6 +85,6 @@ function Start-ScriptAsAdmin
         $com += '-ExecutionPolicy bypass -file '
         $com += $Command
         $psexe = if ($PSVersionTable.PSEdition -ieq 'Core') { 'pwsh.exe' }else { 'powershell.exe' }
-        Start-Process $psexe -ArgumentList $com -Verb runAs
+        Start-Process $psexe -ArgumentList $com -Verb runAs -wait:$wait.IsPresent -PassThru:$PassThru.IsPresent
     }
 }
