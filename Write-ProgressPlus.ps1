@@ -361,4 +361,4 @@ function Test-Wripro
 New-Alias -Name WriPro Write-ProgressPlus
 New-Alias -Name Progisław Write-ProgressPlus
 New-Alias -Name ResPro Reset-Progress
-Export-ModuleMember -Function Write-ProgressPlus, Test-Wripro, Reset-Progress -Alias *
+# Export-ModuleMember -Function Write-ProgressPlus, Test-Wripro, Reset-Progress -Alias *
