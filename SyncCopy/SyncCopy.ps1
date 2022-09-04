@@ -9,9 +9,24 @@ function Sync-Music
         [string]
         $Destination
     )
-    $logPath = Join-Path (Join-Path -Path $defLoc -ChildPath Logs) -ChildPath "Log_$([datetime]::now.ToString('yyyyMMdd_HHmmss')).log"
-    $logDir = New-Item -ItemType Directory -Force -Path (Split-Path $logPath)
-    Robocopy.exe /JOB:$jobPath $Destination /UNILOG:"`"$logPath`""
+	$driveLetter = [io.path]::GetPathRoot($Destination) -ireplace '\W',''
+	$id = Get-Partition -DriveLetter $driveLetter | select -expandproperty DiskId
+	if($id -ilike '*scsi*'){
+		
+		Write-Warning "Destination $Destination is listed as a local drive."
+		Read-Host 'Last chance to CTRL-C out of this mess'	
+		Read-Host 'Sike, now is the last chance'	
+	}
+	
+    if([System.Environment]::GetFolderPath('MyMusic').ToLowerInvariant().Contains($Destination.ToLowerInvariant())){
+        throw 'DO NOT PUT YOUR CURRENT MUSIC LIBRARY, DEKLU'
+    }
+    else{
+
+        $logPath = Join-Path (Join-Path -Path $defLoc -ChildPath Logs) -ChildPath "Log_$([datetime]::now.ToString('yyyyMMdd_HHmmss')).log"
+        $logDir = New-Item -ItemType Directory -Force -Path (Split-Path $logPath)
+        Robocopy.exe /JOB:$jobPath $Destination /UNILOG:"`"$logPath`""
+    }
 }
 function Copy-AudioBook
 {
@@ -23,7 +38,7 @@ function Copy-AudioBook
         $drive = $opticals.DeviceID
         $dateName = (Get-Date -Format 'yyyyMMddHHmmss') + $name
         $day = (Get-Date -Format 'yyyyMMdd') + $name
-        $direct = "$Env:TEMP/audiobooks/$day/"
+        $direct = "$Env:TEMP/audiobooks/$(Get-Date -Format 'yyyyMMdd')/"
         $f = New-Item -ItemType Directory -Path $direct -Force
         $files = Get-ChildItem $drive -File -Recurse -Filter '*.mp3' | Sort-Object BaseName
         Reset-progress -id 1
