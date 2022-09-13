@@ -312,7 +312,48 @@ function Get-OffsetString
         $strb.ToString()
     }
 }
+$freeDbRoot = 'http://gnudb.gnudb.org/~cddb/cddb.cgi?cmd='
 $FreeDbHello = 'script+my.host.com+powershell+1.0'
+$freeDbEnd = '&hello={0}&proto=6' -f $FreeDbHello
+function Get-FreeDbEntry
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+        [string]
+        $Category,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+        [string]
+        $DiscId
+    )
+    process
+    {
+
+        $uri = $freeDbRoot + 'cddb+read+' + $Category + '+' + $DiscId + $freeDbEnd
+        $uri
+        $cont = Invoke-WebRequest $uri | Select-Object -ExpandProperty content
+        $opt = [System.Text.RegularExpressions.RegexOptions]::Multiline -bor [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+        $regOff = [regex]::new('#     (?<offset>\d+)', $opt)
+        $regTr = [regex]::new('TTITLE(?<number>\d+)=(?<title>.*)\n', $opt)
+        $regart = [regex]::new('(?<artist>.*) \/ (?<title>.*)', $opt)
+        $art = $regart.Match($content)
+        $offsets = $regOff.Matches($cont)
+        $tracks = $regTr.Matches($cont)
+        if ($offsets.count -ne $tracks.count) { return }
+
+        for ($i = 0; $i -lt $offsets.Count; $i++)
+        {
+            $o = $offsets[$i]
+            $t = $tracks[$i]
+            [TrackInfo]::new(
+                $t.groups['number'].Value,
+                $t.groups['title'].Value,
+                $art.groups['artist'].Value,
+                $o.groups['offset'].Value)
+        }
+    }
+}
+
 function Search-FreeDbByCue
 {
     [CmdletBinding()]
@@ -325,9 +366,9 @@ function Search-FreeDbByCue
     {
         $cue = Read-CueSheet $Path
         $offsets = Get-OffsetString $cue
-        $uri = 'http://gnudb.gnudb.org/~cddb/cddb.cgi?cmd=discid+'
+        $uri = $freeDbRoot + 'discid+'
         $uri += $offsets
-        $uri += "&hello={0}&proto=6" -f $FreeDbHello
+        $uri += $freeDbEnd
         $uri
         $content = Invoke-WebRequest $uri | Select-Object -ExpandProperty Content
         if ($content -imatch 'Disc ID is (.*)')
@@ -339,8 +380,20 @@ function Search-FreeDbByCue
             $discid = 1337
         }
         $uri2 = "http://gnudb.gnudb.org/~cddb/cddb.cgi?cmd=cddb+query+$discid+$offsets&hello=$FreeDbHello&proto=6"
-        Invoke-WebRequest $uri2 | select -ExpandProperty content
+        $cont = Invoke-WebRequest $uri2 | Select-Object -ExpandProperty content
+        $cont -split '\n' | Select-Object -Skip 1 | ForEach-Object {
+            if ($_ -imatch '(?<gen>\w+) (?<id>\w+) (?<artist>.+) \/ (?<album>.+)')
+            {
+                $entry = [pscustomobject]@{
+                    Category = $Matches['gen']
+                    DiscId   = $Matches['id']
+                    Artist   = $Matches['artist']
+                    Album    = $Matches['album']
+                }
+                $entry | Get-FreeDbEntry
+            }
+        }
     }
 }
 
-Search-FreeDbByCue "E:\FLACBAZA\Rips\REM\1991 - Out of Time\R.E.M. - Out of Time.cue"
+Search-FreeDbByCue 'E:\FLACBAZA\Rips\REM\1991 - Out of Time\R.E.M. - Out of Time.cue'

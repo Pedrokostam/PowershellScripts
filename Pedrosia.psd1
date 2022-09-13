@@ -69,9 +69,10 @@
     NestedModules     =
     'New-Shortcut.ps1',
     'Elevation.ps1',
-    'Utilities.ps1',
+    'Utilities.psm1',
     'CueSheets.ps1',
     'SyncCopy/SyncCopy.ps1',
+    'Musick/Musick.psd1',
     'Write-ProgressPlus.psm1'
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
@@ -83,16 +84,23 @@
     'New-Shortcut',
     'Compress-CUEImage',
     'Write-ProgressPlus',
-    'Copy-AudioBook'
+    'Copy-AudioBook',
+    'Get-MediaDuration',
+    'Read-CueSheet',
+    'Test-Accurip',
+    'Read-AccuripStatusFile',
+    'Get-UnixPath',
+    'Test-File'
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
     CmdletsToExport   = @()
 
     # Variables to export from this module
-    VariablesToExport = '*'
+    VariablesToExport = @()
 
     # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-    AliasesToExport   = @()
+    AliasesToExport   =
+    'rcue'
 
     # DSC resources to export from this module
     # DscResourcesToExport = @()
