@@ -71,7 +71,7 @@ PowerShellVersion = '7.0.0'
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = 'Resolve-Bool', 'Limit-Object', 'Get-Info', 'Write-InformationColored',
                'Test-UnicodeFailure', 'Get-UnixPath', 'Test-File',
-               'Test-FileFolderCount','Get-Xd', 'Copy-Audiobook','Get-FileMeta'
+               'Test-FileFolderCount','Get-Xd', 'Copy-Audiobook','Get-FileMeta', 'Format-USBDrive', 'Show-USBDrives'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 # CmdletsToExport = '*'
