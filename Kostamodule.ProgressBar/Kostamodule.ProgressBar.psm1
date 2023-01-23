@@ -27,10 +27,10 @@ function Write-ProgressPlus
         -Manual
             Not piped.
             Objects are optional.
-            The current iteration number has to be spcified in each call.
+            The current iteration number has to be specified in each call.
             Needs to be reset after completion.
     .PARAMETER InputObject
-    Object used in the last iteration of the process. If used not in pipeline it may be not provided.
+    Object used in the last iteration of the process.
     .PARAMETER CurrentIteration
     Used to override the automatically calculated iteration.
     .PARAMETER HideObject
@@ -118,7 +118,10 @@ function Write-ProgressPlus
         [Parameter()]
         [Alias('SkipRemainingTime', 'SkipETA')]
         [switch]
-        $NoEta
+        $NoEta,
+        [Parameter()]
+        [switch]
+        $SkipCounter
     )
     begin
     {
@@ -139,6 +142,7 @@ function Write-ProgressPlus
                 Activity         = $Activity
                 NoEta            = $NoEta.IsPresent
                 AutoIncrement    = $AutoIncrement.IsPresent
+                SkipCounter      = $SkipCounter.IsPresent
             }
         }
         else
@@ -153,6 +157,8 @@ function Write-ProgressPlus
     }
     process
     {
+        $WppPersistent[$id].TotalCount = $TotalCount
+        $WppPersistent[$id].SkipCounter = $SkipCounter
         if ($PSCmdlet.ParameterSetName -eq 'Manual')
         {
             $WppPersistent[$Id].CurrentIteration = $CurrentIteration
@@ -188,23 +194,32 @@ function Write-ProgressInternal
     )
 
     $pState = $WppPersistent[$Id]
+    $skipCounter = $pState['SkipCounter']
     $pOutput = @{
         ID       = $pState.ID
         Parent   = $pState.ParentID
         Activity = $pState.Activity
-        Status   = [string]$pState.CurrentIteration
+        Status   = if ($skipCounter) { ' ' } else { [string]$pState.CurrentIteration }
     }
     if ($pState.TotalCount -gt 0)
     {
         $pOutput.PercentComplete = $pState.CurrentIteration * 100.0 / $pState.TotalCount
         if ($pOutput.PercentComplete -gt 100)
         {
-            $pOutput.Status += " / [total count of $($pState.Totalcount) exceeded]"
+            if (-not $skipCounter)
+            {
+                $pOutput.Status += ' / '
+            }
+            $pOutput.Status += "[total count of $($pState.Totalcount) exceeded]"
             $pOutput.PercentComplete = 100
         }
         else
         {
-            $pOutput.Status += ' / {0} ({1:d2}%)' -f $pState.TotalCount, [int]$pOutput.PercentComplete
+            if (-not $skipCounter)
+            {
+                $pOutput.Status += ' / '
+            }
+            $pOutput.Status += '{0} ({1:d2}%)' -f $pState.TotalCount, [int]$pOutput.PercentComplete
             if (-not $pState.NoEta)
             {
                 $NewTimes, $eta, $average = Get-Eta -Times $pState.LastXTimes -Total $pState.TotalCount -Current $pState.CurrentIteration
@@ -215,7 +230,10 @@ function Write-ProgressInternal
     }
     else
     {
-        $pOutput.PercentComplete = 0
+        $diffMs = ((get-date) - $pState.StartTime).TotalMilliseconds / 4
+        $difMod = $diffMs % 2000
+        $difNorm = $difMod / 1000 * 3.1415
+        $pOutput.PercentComplete = [math]::cos($difNorm) * 40 + 50
     }
     if ($null -ne $pState.ItemFormat)
     {
@@ -360,6 +378,4 @@ function Test-Wripro
 
 New-Alias -Name WriPro Write-ProgressPlus
 New-Alias -Name WriProg Write-ProgressPlus
-New-Alias -Name ProgPlus Write-ProgressPlus
 New-Alias -Name ResPro Reset-Progress
-# Export-ModuleMember -Function Write-ProgressPlus, Test-Wripro, Reset-Progress -Alias *

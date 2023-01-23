@@ -57,7 +57,7 @@
     # RequiredAssemblies = @()
 
     # Script files (.ps1) that are run in the caller's environment prior to importing this module.
-    # ScriptsToProcess = @()
+    ScriptsToProcess = @('./Musick/MusickClasses.ps1')
 
     # Type files (.ps1xml) to be loaded when importing this module
     # TypesToProcess = @()
@@ -84,13 +84,15 @@
     'New-Shortcut',
     'Compress-CUEImage',
     'Write-ProgressPlus',
+    'Reset-Progress',
     'Copy-AudioBook',
     'Get-MediaDuration',
     'Read-CueSheet',
     'Test-Accurip',
     'Read-AccuripStatusFile',
     'Get-UnixPath',
-    'Test-File'
+    'Test-File',
+    'Start-ProcessWithProgress'
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
     CmdletsToExport   = @()

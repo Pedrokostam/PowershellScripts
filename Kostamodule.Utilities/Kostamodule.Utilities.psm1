@@ -6,7 +6,7 @@ function Resolve-Bool
             ValueFromPipeline = $true)]
         [string] $A
     )
-    Write-Output $A -imatch '(1|true|yes|enabled|ja|da|tak|jak najbardziej|jeszcze jak|zgoda|dawaj|affirmative|let''s dance|graj muzyko|ehe)'
+    $A -imatch '(1|true|yes|enabled|ja|da|tak|jak najbardziej|jeszcze jak|zgoda|dawaj|affirmative|let''s dance|graj muzyko|ehe|yhym)'
 }
 function Limit-Object
 {
@@ -67,11 +67,11 @@ function Limit-Object
     {
         foreach ($item in $InputObject)
         {
-            if ($item -gt $Maximum -and $null -ne $Maximum)
+            if ($null -ne $Maximum -and $item -gt $Maximum)
             {
                 $Maximum
             }
-            elseif ($item -lt $Minimum -and $null -ne $Minimum)
+            elseif ($null -ne $Maximum -and $item -lt $Minimum)
             {
                 $Minimum
             }
@@ -82,6 +82,7 @@ function Limit-Object
         }
     }
 }
+New-Alias Limit Limit-Object
 function Group-ObjectFaster
 {
     [CmdletBinding()]
@@ -151,104 +152,6 @@ function Group-ObjectFaster
         Write-Output $hashy
     }
 }
-$defaultTimeUnits = @{
-    days = 'days'; hours = 'hours'; minutes = 'minutes'; seconds = 'seconds'; milliseconds = 'milliseconds'
-}
-function Format-TimeSpan
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [Timespan[]]
-        $Timespan,
-        [Parameter()]
-        [switch]
-        $IncludeMilliseconds,
-        [Parameter()]
-        [switch]
-        $DisableLegend,
-        [Parameter()]
-        [Hashtable]
-        $Units = @{
-            days = 'days'; hours = 'hours'; minutes = 'minutes'; seconds = 'seconds'; milliseconds = 'milliseconds'
-        }
-    )
-    begin
-    {
-        $Units = @{
-            days         = if ($Units.days) { $Units.days } else { $defaultTimeUnits.days }
-            hours        = if ($Units.hours) { $Units.hours } else { $defaultTimeUnits.hours }
-            minutes      = if ($Units.minutes) { $Units.minutes } else { $defaultTimeUnits.minutes }
-            seconds      = if ($Units.seconds) { $Units.seconds } else { $defaultTimeUnits.seconds }
-            milliseconds = if ($Units.milliseconds) { $Units.milliseconds } else { $defaultTimeUnits.milliseconds }
-        }
-    }
-    process
-    {
-        foreach ($span in $Timespan)
-        {
-            $parts = @()
-            $seps = @()
-            $legend = @()
-            if ($span.Days -gt 0)
-            {
-                if ($span.Days -gt 999)
-                {
-                    $parts += $span.Days.Tostring('D4')
-                }
-                elseif ($span.Days -gt 99)
-                {
-                    $parts += $span.Days.Tostring('D3')
-                }
-                else
-                {
-                    $parts += $span.Days.Tostring('D2')
-                }
-                $legend += "$($span.Days) $($Units.Days), "
-                $seps += ':'
-            }
-            if ($span.Hours -gt 0 -or $parts.Length -gt 0)
-            {
-                $parts += $span.Hours.Tostring('D2')
-                $legend += "$($span.Hours) $($Units.Hours), "
-                $seps += ':'
-            }
-            if ($span.Minutes -gt 0 -or $parts.Length -gt 0)
-            {
-                $parts += $span.Minutes.Tostring('D2')
-                $legend += "$($span.Minutes) $($Units.Minutes), "
-
-                $seps += ':'
-            }
-            if ($span.Seconds -gt 0 -or $parts.Length -gt 0)
-            {
-                $sep = if ($IncludeMilliseconds.IsPresent) { '.' }else { '' }
-                $sepL = if ($IncludeMilliseconds.IsPresent) { ', ' }else { '' }
-                $parts += $span.Seconds.Tostring('D2')
-                $legend += "$($span.Seconds) $($Units.Seconds)$sepL"
-                $seps += $sep
-            }
-            if ($IncludeMilliseconds.IsPresent)
-            {
-                $parts += $span.Milliseconds.ToString('D3')
-                $legend += "$($span.Milliseconds) $($Units.Milliseconds)"
-            }
-            for ($i = 0; $i -lt $parts.Count; $i++)
-            {
-                $durstring += $parts[$i] + $seps[$i]
-                $legstring += $legend[$i]
-            }
-            if ($DisableLegend.IsPresent)
-            {
-                $durstring
-            }
-            else
-            {
-                ("$durstring ($legstring)")
-            }
-        }
-    }
-}
 function Get-Info
 {
     [CmdletBinding()]
@@ -314,7 +217,6 @@ Function Write-InformationColored
 
     Write-Information $msg
 }
-
 function Test-UnicodeFailure
 {
     [CmdletBinding()]
@@ -334,7 +236,6 @@ function Test-UnicodeFailure
         }
     }
 }
-
 function Get-UnixPath
 {
     [CmdletBinding()]
@@ -364,7 +265,6 @@ function Get-UnixPath
         }
     }
 }
-
 function Test-File
 {
     param (
@@ -391,3 +291,143 @@ function Test-File
             } }
     }
 }
+
+function Test-FileFolderCount
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [Alias('Fullname', 'PSPath')]
+        [string]
+        $Path = '.',
+        [Parameter()]
+        [string[]]
+        $Extensions
+    )
+    process
+    {
+        $root = Get-Item $Path
+        $par = @{
+            Path    = $Path
+            Recurse = $true
+            File    = $true
+
+        }
+        if ($Extensions)
+        {
+            $par.Include = $Extensions
+        }
+        $all = Get-ChildItem @par
+        [PSCustomObject]@{
+            Directory = $root
+            Files     = $all.count
+        }
+    }
+}
+
+function Get-Xd
+{
+    '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::x:::::::::::::::::::::::::::::::::::::::::::::::::::::::::x::::::::::::::::::::::::
+::::::::xdxx::::::::::::::::::xddddxxx::::::::::::::::::::::::::::xdxx::::::::::::::::::xddddxxx::::::::::::::::::
+:::::::::dddx::::::::::::::::xddddddddddxxx::::::::::::::::::::::::dddx::::::::::::::::xddddddddddxxx:::::::::::::
+:::::::::xddd::::::::x:::::::ddddddddddddddddx:::::::::::::::::::::xddd::::::::x:::::::ddddddddddddddddx::::::::::
+:::::::::xdddx:::::xddddxx::xdddddxxdddddddddddxx::::::::::::::::::xdddx:::::xddddxx::xdddddxxdddddddddddxx:::::::
+::::::::::dddx:::xddddddx::xdddddx::::xxdddddddddx::::::::::::::::::dddx:::xddddddx::xdddddx::::xxdddddddddx::::::
+::::::::::xdddxxdddddxx:::xdddddx::::::::xddddddddx:::::::::::::::::xdddxxdddddxx:::xdddddx::::::::xddddddddx:::::
+:::::::::::ddddddddx::::::dddddx::::::::::xdddddddd::::::::::::::::::ddddddddx::::::dddddx::::::::::xdddddddd:::::
+::::::::::xddddddx:::::::xddddx::::::::::::xdddddddx::::::::::::::::xddddddx:::::::xddddx::::::::::::xdddddddx::::
+:::::::xxddddddd::::::::xddddd:::::::::::::xdddddddx:::::::::::::xxddddddd::::::::xddddd:::::::::::::xdddddddx::::
+:::::xdddddxxddd:::::::xddddd::::::::::::::dddddddd::::::::::::xdddddxxddd:::::::xddddd::::::::::::::dddddddd:::::
+::::xddddx:::dddx:::::xdddddx:::::::::::::xdddddddx:::::::::::xddddx:::dddx:::::xdddddx:::::::::::::xdddddddx:::::
+::::::xx:::::xddx:::::dddddx:::::::::::::xdddddddx::::::::::::::xx:::::xddx:::::dddddx:::::::::::::xdddddddx::::::
+:::::::::::::xddd::::xddddx:::::::::::::xdddddddx::::::::::::::::::::::xddd::::xddddx:::::::::::::xdddddddx:::::::
+::::::::::::::dddx::xddddx:::::::::::::xdddddddx::::::::::::::::::::::::dddx::xddddx:::::::::::::xdddddddx::::::::
+:::::::::::::::xxx:xddddx::::::::::::xxdddddddx::::::::::::::::::::::::::xxx:xddddx::::::::::::xxdddddddx:::::::::
+:::::::::::::::::::xdddddxx::::::::xxdddddddxx:::::::::::::::::::::::::::::::xdddddxx::::::::xxdddddddxx::::::::::
+::::::::::::::::::::::xdddddxxxxxxdddddddddx::::::::::::::::::::::::::::::::::::xdddddxxxxxxdddddddddx::::::::::::
+:::::::::::::::::::::::::xxdddddddddddddxx:::::::::::::::::::::::::::::::::::::::::xxdddddddddddddxx::::::::::::::
+:::::::::::::::::::::::::::::xxxxxxxxx:::::::::::::::::::::::::::::::::::::::::::::::::xxxxxxxxx::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::'
+}
+
+New-Alias xD get-xd
+
+function Copy-AudioBook
+{
+    $opticals = Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -eq 5 -and $_.Size } | Select-Object -First 1
+    foreach ($optical in $opticals)
+    {
+        $name = $opticals.volumename -ireplace ' ', ''
+        $drive = $opticals.DeviceID
+        $dateName = (Get-Date -Format 'yyyyMMddHHmmss') + $name
+        $day = (Get-Date -Format 'yyyyMMdd') + $name
+        $direct = Join-Path "$Env:TEMP/audiobooks/" (Get-Date -Format 'yyyyMMdd')
+        $f = New-Item -ItemType Directory -Path $direct -Force
+        $files = Get-ChildItem $drive -File -Recurse -Filter '*.mp3' | Sort-Object BaseName
+        Write-Host "Copying drive $($optical.DeviceID) ($($optical.VolumeName)) to $direct" -ForegroundColor Green
+        Reset-Progress -Id 1
+        $count = 0
+        $startDate = Get-Date
+        foreach ($file in $files)
+        {
+            $num = '{0:d4}' -f $count
+            Write-ProgressPlus -Id 1 -CurrentIteration $count -InputObject ($file.name) -TotalCount ($files.count) -Activity 'Copying...'
+            Copy-Item -Path $file.FullName -Destination (Join-Path $direct "$datename$num.mp3" )
+            $count++
+        }
+        $endDate = Get-Date
+        Write-Host "Copied $($files.count) mp3 files to $direct ($datename) in $(($endDate- $startDate).TotalSeconds) seconds" -ForegroundColor Yellow
+    }
+}
+
+function Get-FileMeta
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName, Mandatory, Position = 0)]
+        [string[]]
+        $Path,
+        [Parameter( Mandatory, Position = 0)]
+        [Alias('Index')]
+        [string[]]
+        $Column
+    )
+    begin
+    {
+        $objShell = New-Object -ComObject Shell.Application
+    }
+    process
+    {
+        foreach ($f in $Path)
+        {
+            $f = $f | Get-Item -ErrorAction SilentlyContinue
+            if ($f -is [System.IO.DirectoryInfo])
+            {
+                Write-Error "$f is not a file"
+                continue
+            }
+            elseif ($f -isnot [System.IO.FileInfo] -or -not $f.Exists)
+            {
+                Write-Error "$f does not exist"; continue
+            }
+            else # fileinfo
+            {
+                $objFolder = $objShell.Namespace($f.DirectoryName)
+                $objFile = $objFolder.ParseName($f.Name)
+                $result = @{File = $f }
+                foreach ($col in $Column)
+                {
+                    $value = $objFolder.GetDetailsOf($objFile, $col)
+                    $result[$col] = $value
+                }
+                [pscustomobject]$result
+            }
+        }
+    }
+}
+
