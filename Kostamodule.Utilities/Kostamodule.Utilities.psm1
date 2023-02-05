@@ -1,5 +1,4 @@
-function Resolve-Bool
-{
+function Resolve-Bool {
     param(
         [Parameter(
             Mandatory = $true,
@@ -8,8 +7,7 @@ function Resolve-Bool
     )
     $A -imatch '(1|true|yes|enabled|ja|da|tak|jak najbardziej|jeszcze jak|zgoda|dawaj|affirmative|let''s dance|graj muzyko|ehe|yhym)'
 }
-function Limit-Object
-{
+function Limit-Object {
     <#
     .SYNOPSIS
     Checks if the input objects fits inside the specified range. The returned object is coerced to the range.
@@ -47,14 +45,11 @@ function Limit-Object
         [Parameter(ValueFromPipeline, Mandatory)]
         [object[]] $InputObject
     )
-    begin
-    {
+    begin {
         if ($null -eq $Maximum -and $null -eq $Minimum) { Write-Warning 'Both bounds are set to null, no limiting will be done.' }
-        elseif ($null -ne $Maximum -and $null -ne $Minimum)
-        {
+        elseif ($null -ne $Maximum -and $null -ne $Minimum) {
             if ($Minimum -eq $Maximum) { Write-Warning 'The limiting range is zero, as minimum equals to maximum.' }
-            elseif ($Minimum -gt $Maximum)
-            {
+            elseif ($Minimum -gt $Maximum) {
                 Write-Warning 'Specified Maximum is larger than Minimum. Values have been swapped.'
                 $a = $Minimum
                 $Minimum = $Maximum
@@ -63,28 +58,20 @@ function Limit-Object
         }
         Write-Debug "Limiting objects to range: < $(if($null -eq $Minimum){'N/A'}else{$Minimum}) ; $(if($null -eq $Maximum){'N/A'}else{$Maximum}) >"
     }
-    process
-    {
-        foreach ($item in $InputObject)
-        {
-            if ($null -ne $Maximum -and $item -gt $Maximum)
-            {
+    process {
+        foreach ($item in $InputObject) {
+            if ($null -ne $Maximum -and $item -gt $Maximum) {
                 $Maximum
-            }
-            elseif ($null -ne $Maximum -and $item -lt $Minimum)
-            {
+            } elseif ($null -ne $Maximum -and $item -lt $Minimum) {
                 $Minimum
-            }
-            else
-            {
+            } else {
                 $item
             }
         }
     }
 }
 New-Alias Limit Limit-Object
-function Group-ObjectFaster
-{
+function Group-ObjectFaster {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -104,56 +91,45 @@ function Group-ObjectFaster
         [switch]
         $HideProgressBar
     )
-    begin
-    {
+    begin {
         $hashy = @{}
         $counter = 0
         #If the value is not from pipeline we know how many elements there are
-        if (-not $PSCmdlet.MyInvocation.ExpectingInput)
-        {
+        if (-not $PSCmdlet.MyInvocation.ExpectingInput) {
             $TotalCount = $InputObject.Count
         }
-        if ($UpdatesNumber -le 0)
-        {
+        if ($UpdatesNumber -le 0) {
             $UpdatesNumber = 100
         }
         $UpdateThreshold = Limit-Object ([int][Math]::Floor($TotalCount / $UpdatesNumber)) 1 100000
         Write-Verbose "Update threshold is $UpdateThreshold"
-        if (-not $UpdateThreshold -and (-not $HideProgressBar.IsPresent))
-        {
+        if (-not $UpdateThreshold -and (-not $HideProgressBar.IsPresent)) {
             Write-Progress -Id 1 -Activity 'Grouping objects...' -Status 'Unknown number of objects' -PercentComplete -1
         }
     }
-    process
-    {
-        foreach ($obj in $InputObject)
-        {
+    process {
+        foreach ($obj in $InputObject) {
             $props = $Properties | ForEach-Object { [string]($obj.$_) }
             $key = -join $props
-            if (-not $hashy[$key])
-            {
+            if (-not $hashy[$key]) {
                 $hashy[$key] = New-Object Collections.Generic.List[PSCustomObject]
                 Write-Verbose "$counter - Added key: $key"
             }
             $hashy[$key].Add($obj)
-            if ((-not $HideProgressBar.IsPresent) -and $UpdateThreshold -gt 0 -and $counter % $UpdateThreshold -eq 0)
-            {
+            if ((-not $HideProgressBar.IsPresent) -and $UpdateThreshold -gt 0 -and $counter % $UpdateThreshold -eq 0) {
                 Write-ProgressThrottled -Id 1 'Grouping objects...' -Total $TotalCount -Current $counter -UpdateThreshold $UpdateThreshold
             }
             $counter++
         }
     }
-    end
-    {
-        if ($UpdateThreshold -gt 0)
-        {
+    end {
+        if ($UpdateThreshold -gt 0) {
             Write-Progress -Id 1 -Activity 'Grouping objects...' -Completed
         }
         Write-Output $hashy
     }
 }
-function Get-Info
-{
+function Get-Info {
     [CmdletBinding()]
     param (
     )
@@ -185,8 +161,7 @@ function Get-Info
         'Uptime'         = Format-TimeSpan ((Get-Date) - $cinfo.OsLastBootUpTime)
     }
 }
-Function Write-InformationColored
-{
+Function Write-InformationColored {
     <#
     .SYNOPSIS
         Writes messages to the information stream, optionally with
@@ -217,95 +192,139 @@ Function Write-InformationColored
 
     Write-Information $msg
 }
-function Test-UnicodeFailure
-{
-    [CmdletBinding()]
+
+function Get-UnixPath {
+    <#
+    .SYNOPSIS
+    Converts given Windows path to Unix-like path (for WSL).
+    .DESCRIPTION
+    Converts the the given Windows path to a path that can be used for the WSL instance.
+    Changes backslashes to forward slashes.
+    Assumes that each Windows partition are available in WSL as /mnt/{DriveLetter}.
+    Can optionally make the path absolute first.
+    .PARAMETER EscapeType
+    Controls the type of escaping spaces. Possible values are Quotes and Backslash
+    Quotes: c:\name with space -> "/mnt/c/name with space"
+    Backslash: c:\name with space -> /mnt/c/name\ with\ space
+    .PARAMETER ForceQuotes
+    Forces the output to be encased in quotes regardless of whether there is a space in the path or not.
+    Also overrides -EscapeType to Quotes
+    .PARAMETER WindowsPath
+    Path string.
+    .PARAMETER AbsolutePath
+    Switch to control whether the path should be made absolute with current directory as base.
+    .PARAMETER UsePsObject
+    Switch controlling the output type of the function.
+    .OUTPUTS
+    string
+        Ordinary string by default
+    PSObject
+        PSObject containing the original Windows path and Unix string
+    #>
+    [OutputType([string], ParameterSetName = 'default')]
+    [OutputType([psobject], ParameterSetName = 'pso')]
+    [CmdletBinding(DefaultParameterSetName = 'default', PositionalBinding = $False)]
     param (
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [string[]]
-        [AllowEmptyString()]
-        [AllowEmptyCollection()]
-        [Alias('Content', 'InputObject')]
-        $Text
-    )
-    process
-    {
-        foreach ($string in $Text)
-        {
-            $string -cmatch '�'
-        }
-    }
-}
-function Get-UnixPath
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position = 0)]
         [Alias('Path', 'Fullname')]
         [string[]]
-        $WindowsPath
+        $WindowsPath,
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [string]
+        [ValidateSet('Backslash', 'Quotes')]
+        $EscapeType = 'Quotes',
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [switch]
+        $ForceQuotes,
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [switch]
+        $AbsolutePath,
+        [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'pso', Mandatory)]
+        [switch]
+        $UsePsObject
     )
-    process
-    {
-        foreach ($element in $WindowsPath)
-        {
+    process {
+        foreach ($element in $WindowsPath) {
+            if ($AbsolutePath.IsPresent) {
+                $element = [IO.Path]::GetFullPath($element)
+            }
+            if ($ForceQuotes.IsPresent) {
+                $EscapeType = 'Quotes'
+            }
             $original = $element
-            if ($element -match '(?<Drive>\w+):[\\\/]')
-            {
+            if ($element -match '(?<Drive>\w+):[\\\/]') {
                 $element = $element.Replace($Matches[0], "/mnt/$($Matches['Drive'].ToLower())/")
             }
-            if ($element -notmatch '$[''"].*[''"]^')
-            {
-                $element = '"{0}"' -f $element
+            $unix = $element -replace '\\', '/'
+            if ($unix.Contains(' ') -or $ForceQuotes.IsPresent) {
+                if ($EscapeType -eq 'Quotes') {
+                    $unix = '"{0}"' -f $unix
+                } else {
+                    $unix = $unix -replace ' ', '\ '
+                }
             }
-            [PSCustomObject]@{
-                Path     = $original
-                UnixPath = $element -replace '\\', '/'
+            if ($UsePsObject.IsPresent) {
+                [PSCustomObject]@{
+                    Path     = $original
+                    UnixPath = $unix
+                }
+            } else {
+                $unix
             }
         }
     }
 }
-function Test-File
-{
+function Test-File {
+    <#
+    .DESCRIPTION
+    Uses the default WSL on the machine to execute the 'file' app and return its output
+    #>
     param (
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias('Fullname')]
         [string[]]
         $Path
     )
-    begin
-    {
+    begin {
         where.exe wsl /Q | Out-Null
-        if ($LASTEXITCODE)
-        {
+        if ($LASTEXITCODE) {
             Write-Error "WSL could not be found. Cannot use 'file' to test files..."
             break
         }
     }
-    process
-    {
-        $Path | Get-UnixPath -PipelineVariable file | ForEach-Object { wsl file $_.UnixPath --brief } | ForEach-Object {
+    process {
+        $Path | Resolve-Path -PipelineVariable resolved | Get-UnixPath -PipelineVariable file -UsePsObject | ForEach-Object { wsl file $_.UnixPath --brief } | ForEach-Object {
             [PSCustomObject]@{
-                Path   = Get-Item $file.Path | Select-Object -ExpandProperty Fullname -First 1
+                Path   = $resolved.Path
                 Result = $_
             } }
     }
 }
 
-function Test-FileFolderCount
-{
-    [CmdletBinding()]
+function Test-FileFolderCount {
+    <#
+    .SYNOPSIS
+    Recursively counts all files in the given folder.
+    Files to be counted can be limited with IncludePattern
+    .PARAMETER UsePsObject
+    Switch controlling the output type of the function.
+    #>
+    [OutputType([int], ParameterSetName = 'default')]
+    [OutputType([psobject], ParameterSetName = 'pso')]
+    [CmdletBinding(DefaultParameterSetName = 'default', PositionalBinding = $False)]
     param (
-        [Parameter(ValueFromPipeline)]
+        [Parameter(ValueFromPipeline, Position = 0)]
         [Alias('Fullname', 'PSPath')]
         [string]
         $Path = '.',
-        [Parameter()]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [string[]]
-        $Extensions
+        $IncludePattern,
+        [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'pso', Mandatory)]
+        [switch]
+        $UsePsObject
     )
-    process
-    {
+    process {
         $root = Get-Item $Path
         $par = @{
             Path    = $Path
@@ -313,20 +332,28 @@ function Test-FileFolderCount
             File    = $true
 
         }
-        if ($Extensions)
-        {
-            $par.Include = $Extensions
+        if ($IncludePattern) {
+            $par.Include = $IncludePattern
         }
         $all = Get-ChildItem @par
-        [PSCustomObject]@{
-            Directory = $root
-            Files     = $all.count
+        if ($UsePsObject.IsPresent) {
+
+            [PSCustomObject]@{
+                Directory = $root
+                Files     = $all.count
+            }
+        } else {
+            $all.count
         }
     }
 }
 
-function Get-Xd
-{
+function Get-Xd {
+    <#
+    .DESCRIPTION
+    Gets xD
+    xDDDDDDDDD
+    #>
     '::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -357,116 +384,7 @@ function Get-Xd
 
 New-Alias xD get-xd
 
-function Show-USBDrives{
-    Get-Volume | Where-Object DriveType -EQ 'Removable'
-}
-
-function Format-USBDrive
-{
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [string]
-        $Letter = $null,
-        [Parameter()]
-        [ValidateSet('exFAT', 'FAT', 'FAT32', 'NTFS', 'ReFS')]
-        [string]
-        $FileSystem = $null,
-        [Parameter()]
-        [string]
-        $Name = $null,
-        [Parameter()]
-        [switch]
-        $Force
-    )
-    $removables = Get-Volume | Where-Object DriveType -EQ 'Removable'
-    # if (-not $removables)
-    # {
-    #     # Get-Volume return translated drivetype. I dunno if the translation is always to English, or to system language
-    #     # So I also use the older Get-CimInstance which does not translate it (removable is '2')
-    #     $removables = Get-CimInstance Win32_LogicalDisk | Where-Object DriveType -EQ '2'
-    # }
-    if (-not $removables)
-    {
-        Write-Error 'No removable volumes detected!'
-        return
-    }
-    $removables = @($removables)
-    $seletected_volume = $null
-    if ($removables.count -gt 1)
-    {
-        if (-not $Letter)
-        {
-            Write-Host 'Detected follwoing removable volumes:'
-            $removables | Out-String | Write-Host
-            Write-Error 'Multiple removable volumes detected. Specify drive letter.'
-            return
-        }
-        $seletected_volume = $removables | Where-Object DriveLetter -EQ $Letter | Select-Object -First 1
-        if (-not $seletected_volume)
-        {
-            Write-Error 'Specified volume does not exist!'
-            return
-        }
-    }
-    else
-    {
-        $seletected_volume = $removables | Select-Object -First 1
-    }
-    if (-not $FileSystem)
-    {
-        $FileSystem = $seletected_volume.FileSystemType
-    }
-    if (-not $Name)
-    {
-        $Name = $seletected_volume.FriendlyName
-    }
-    $N = if($name){$name}else{'$Null'}
-    $seletected_volume | Out-String | Write-Host
-    if ($force.IsPresent)
-    {
-        Write-Warning "Formatting this volume to $FileSystem and name $n"
-    }
-    else
-    {
-        Read-Host "Are you sure you want to format this volume to $FileSystem and name $n? Press CTRL-C to abort, enter to continue"
-    }
-    $seletected_volume | Format-Volume -FileSystem $FileSystem -NewFileSystemLabel $Name
-
-}
-
-function Copy-AudioBook
-{
-    $opticals = Get-Volume | Where-Object DriveType -eq 'CD-ROM' | Select-Object -First 1
-    foreach ($optical in $opticals)
-    {
-        $name = $opticals.FriendlyName -ireplace ' ', ''
-        $drive = $opticals.DriveLetter
-        $dateName = (Get-Date -Format 'yyyyMMddHHmmss') + $name
-        $day = (Get-Date -Format 'yyyyMMdd') + $name
-        $direct = Join-Path "$Env:TEMP/audiobooks/" (Get-Date -Format 'yyyyMMdd')
-        $f = New-Item -ItemType Directory -Path $direct -Force
-        $direct= $f.FullName
-        $files = Get-ChildItem "$($drive):" -File -Recurse -Filter '*.mp3' | Sort-Object BaseName
-        Write-Host "Copying drive $drive ($name) to `"$direct`"" -ForegroundColor Green
-        Reset-Progress -Id 1
-        $count = 0
-        $startDate = Get-Date
-        foreach ($file in $files)
-        {
-            $num = '{0:d4}' -f $count
-            Write-ProgressPlus -Id 1 -CurrentIteration $count -InputObject ($file.name) -TotalCount ($files.count) -Activity 'Copying...'
-            Copy-Item -Path $file.FullName -Destination (Join-Path $direct "$datename$num.mp3" )
-            $count++
-        }
-        $endDate = Get-Date
-        $duration = ($endDate- $startDate).TotalSeconds
-        Write-Host "Copied $($files.count) mp3 files to `"$direct`" ($datename) in $duration seconds" -ForegroundColor Yellow
-    }
-}
-
-function Get-FileMeta
-{
+function Get-FileMeta {
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName, Mandatory, Position = 0)]
@@ -477,31 +395,23 @@ function Get-FileMeta
         [string[]]
         $Column
     )
-    begin
-    {
+    begin {
         $objShell = New-Object -ComObject Shell.Application
     }
-    process
-    {
-        foreach ($f in $Path)
-        {
-            $f = $f | Get-Item -ErrorAction SilentlyContinue
-            if ($f -is [System.IO.DirectoryInfo])
-            {
-                Write-Error "$f is not a file"
+    process {
+        foreach ($outputDirectory in $Path) {
+            $outputDirectory = $outputDirectory | Get-Item -ErrorAction SilentlyContinue
+            if ($outputDirectory -is [System.IO.DirectoryInfo]) {
+                Write-Error "$outputDirectory is not a file"
                 continue
-            }
-            elseif ($f -isnot [System.IO.FileInfo] -or -not $f.Exists)
-            {
-                Write-Error "$f does not exist"; continue
-            }
-            else # fileinfo
-            {
-                $objFolder = $objShell.Namespace($f.DirectoryName)
-                $objFile = $objFolder.ParseName($f.Name)
-                $result = @{File = $f }
-                foreach ($col in $Column)
-                {
+            } elseif ($outputDirectory -isnot [System.IO.FileInfo] -or -not $outputDirectory.Exists) {
+                Write-Error "$outputDirectory does not exist"; continue
+            } else {
+                # fileinfo
+                $objFolder = $objShell.Namespace($outputDirectory.DirectoryName)
+                $objFile = $objFolder.ParseName($outputDirectory.Name)
+                $result = @{File = $outputDirectory }
+                foreach ($col in $Column) {
                     $value = $objFolder.GetDetailsOf($objFile, $col)
                     $result[$col] = $value
                 }

@@ -9,7 +9,7 @@
 @{
 
 # Script module or binary module file associated with this manifest.
-RootModule = '.\Kostamodule.Utilities.psm1'
+RootModule = '.\Kostamodule.USB.psm1'
 
 # Version number of this module.
 ModuleVersion = '0.0.1'
@@ -69,9 +69,7 @@ PowerShellVersion = '7.0.0'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'Resolve-Bool', 'Limit-Object', 'Get-Info', 'Write-InformationColored',
-               'Test-UnicodeFailure', 'Get-UnixPath', 'Test-File',
-               'Test-FileFolderCount','Get-Xd', 'Get-FileMeta'
+FunctionsToExport = 'Format-USBDrive', 'Show-USBDrives'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 # CmdletsToExport = '*'
@@ -79,8 +77,6 @@ FunctionsToExport = 'Resolve-Bool', 'Limit-Object', 'Get-Info', 'Write-Informati
 # Variables to export from this module
 # VariablesToExport = @()
 
-# Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-AliasesToExport = 'Limit','xD'
 
 # DSC resources to export from this module
 # DscResourcesToExport = @()
