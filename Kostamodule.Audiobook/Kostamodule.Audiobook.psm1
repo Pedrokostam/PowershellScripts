@@ -98,7 +98,6 @@ function Copy-AudioBook {
             $statusObject = '{0} -> {1}' -f $file.name, $newName
             Write-ProgressPlus -Id 1 -CurrentIteration $count -InputObject $statusObject -TotalCount ($files.count) -Activity 'Copying...'
             Copy-Item -Path $file.FullName -Destination $outputFilePath
-            Write-Warning 's'
             $count++
         }
         [datetime]$copyingEndDate = Get-Date

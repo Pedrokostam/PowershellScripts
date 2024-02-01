@@ -57,7 +57,7 @@
     # RequiredAssemblies = @()
 
     # Script files (.ps1) that are run in the caller's environment prior to importing this module.
-    ScriptsToProcess = @('./Musick/MusickClasses.ps1')
+    #ScriptsToProcess = @('./Musick/MusickClasses.ps1')
 
     # Type files (.ps1xml) to be loaded when importing this module
     # TypesToProcess = @()
@@ -66,18 +66,18 @@
     # FormatsToProcess = @()
 
     # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
-    NestedModules     =
+    NestedModules     =@(
     'New-Shortcut.ps1',
     'Elevation.ps1',
-    'Utilities.psm1',
-    'CueSheets.ps1',
-    'SyncCopy/SyncCopy.ps1',
-    'Musick/Musick.psd1',
+    #'Utilities/Utilities.psm1',
+    #'CueSheets.ps1',
+    #'SyncCopy/SyncCopy.ps1',
+    #'Musick/Musick.psd1',
     'Write-ProgressPlus.psm1'
-
+)
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport =
-    'Sync-Music',
+    FunctionsToExport =@(
+   # 'Sync-Music',
     'Test-Admin',
     'Start-CommandAsAdmin',
     'Start-ScriptAsAdmin',
@@ -85,15 +85,15 @@
     'Compress-CUEImage',
     'Write-ProgressPlus',
     'Reset-Progress',
-    'Copy-AudioBook',
-    'Get-MediaDuration',
-    'Read-CueSheet',
-    'Test-Accurip',
-    'Read-AccuripStatusFile',
-    'Get-UnixPath',
-    'Test-File',
-    'Start-ProcessWithProgress'
-
+    'Copy-AudioBook'
+    #'Get-MediaDuration',
+    #'Read-CueSheet',
+   # 'Test-Accurip',
+   # 'Read-AccuripStatusFile',
+    #'Get-UnixPath',
+   # 'Test-File',
+   # 'Start-ProcessWithProgress'
+)
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
     CmdletsToExport   = @()
 
