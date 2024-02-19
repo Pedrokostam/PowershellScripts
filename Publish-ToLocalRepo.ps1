@@ -21,7 +21,7 @@ $defaultRepoName = 'MyLocalPwshRepository'
 $localRepos = Get-PSRepository | Where-Object SourceLocation -Match '[A-Z]:\\.*'
 
 if ($localRepos) {
-    $localRepo = $localRepo[0]
+    $localRepo = $localRepos[0]
     $reponame = $localRepo.name
 } else {
     if ($NewRepoName.Trim().Length -eq 0) {
