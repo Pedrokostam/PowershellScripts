@@ -1,3 +1,11 @@
+<#
+.Description
+Publishes a folder to a local repository, if repository does not exist it will be created
+.PARAMETER ModuleFolder
+Path to a folder containing module files. Module name must match folder name.
+.PARAMETER NewRepoName
+Name to be used when creating a new repo. Will be ignored if a repo already exists
+#>
 [CmdletBinding()]
 param (
     [Parameter(Mandatory)]
@@ -5,7 +13,7 @@ param (
     $ModuleFolder,
     [Parameter()]
     [string]
-    $NewRepoName = ''
+    $NewRepoName = 'MyLocalPwshRepository'
 )
 
 $defaultRepoName = 'MyLocalPwshRepository'
@@ -16,7 +24,7 @@ if ($localRepos) {
     $localRepo = $localRepo[0]
     $reponame = $localRepo.name
 } else {
-    if (-not $NewRepoName.Trim()) {
+    if ($NewRepoName.Trim().Length -eq 0) {
         $NewRepoName = $defaultRepoName
     }
     $path = Resolve-Path ~
