@@ -8,28 +8,35 @@ Name to be used when creating a new repo. Will be ignored if a repo already exis
 #>
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory)]
-    [string]
+    [Parameter(Mandatory,ValueFromPipeline)]
+    [string[]]
     $ModuleFolder,
     [Parameter()]
     [string]
     $NewRepoName = 'MyLocalPwshRepository'
 )
+begin{
+	$defaultRepoName = 'MyLocalPwshRepository'
 
-$defaultRepoName = 'MyLocalPwshRepository'
+	$localRepos = Get-PSRepository | Where-Object SourceLocation -Match '[A-Z]:\\.*'
 
-$localRepos = Get-PSRepository | Where-Object SourceLocation -Match '[A-Z]:\\.*'
-
-if ($localRepos) {
-    $localRepo = $localRepos[0]
-    $reponame = $localRepo.name
-} else {
-    if ($NewRepoName.Trim().Length -eq 0) {
-        $NewRepoName = $defaultRepoName
-    }
-    $path = Resolve-Path ~
-    $path = Join-Path $path $reponame
-    Register-PSRepository -SourceLocation $path -Name $repoName -InstallationPolicy Trusted -Verbose
+	if ($localRepos) {
+	    $localRepo = $localRepos[0]
+	    $NewRepoName = $localRepo.name
+	} else {
+	    if ($NewRepoName.Trim().Length -eq 0) {
+	        $NewRepoName = $defaultRepoName
+	    }
+	    $path = Resolve-Path ~
+	    $path = Join-Path $path $NewRepoName
+    	New-item -itemtype Directory $path -Force
+	    Write-Host "Creating local repo at $path"
+	    $localRepo = Register-PSRepository -SourceLocation $path -Name $NewRepoName -InstallationPolicy Trusted -Verbose
+	}
+	Write-Host "Publish to $($localRepo.Name) ($($localRepo.SourceLocation))"
 }
-publish-module -Path $ModuleFolder -Verbose -Repository MyLocalRepository
-
+process{
+	foreach($folder in $moduleFolder){
+		publish-module -Path $Folder -Verbose -Repository $NewRepoName
+	}
+}
