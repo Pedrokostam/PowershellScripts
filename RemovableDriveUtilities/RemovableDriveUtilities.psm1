@@ -240,6 +240,6 @@ function Format-RemovableDrive {
 
 New-Alias -Name Copy-Audiobook -Value Copy-RemovableVolume
 New-Alias -Name Get-LastAudiobookSession -Value Get-LastVolumeCopySession
-New-Alias -Name Get-UsbDrive -Value Format-RemovableDrive
+New-Alias -Name Format-UsbDrive -Value Format-RemovableDrive
 New-Alias -Name Get-UsbDrives -Value Get-RemovableDrives
 

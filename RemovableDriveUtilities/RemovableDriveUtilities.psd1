@@ -12,7 +12,7 @@
 RootModule = '.\RemovableDriveUtilities.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.1.0'
+ModuleVersion = '1.1.1'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop', 'Core')
@@ -80,7 +80,7 @@ FunctionsToExport =  'Copy-RemovableVolume', 'Get-LastVolumeCopySession', 'Forma
 # VariablesToExport = @()
 
 # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-AliasesToExport = 'Copy-Audiobook', 'Get-LastAudiobookSession', 'Get-UsbDrive', 'Get-UsbDrives'
+AliasesToExport = 'Copy-Audiobook', 'Get-LastAudiobookSession', 'Get-UsbDrives', 'Format-UsbDrive'
 
 # DSC resources to export from this module
 # DscResourcesToExport = @()
